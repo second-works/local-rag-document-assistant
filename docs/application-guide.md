@@ -54,7 +54,7 @@ Local RAG Document Assistantは、施設・設備管理の業務文書を検索�
 
 GitHubリポジトリは次のとおりです。
 
-[second-works/-local-rag-document-assistant](https://github.com/second-works/-local-rag-document-assistant)
+[second-works/local-rag-document-assistant](https://github.com/second-works/local-rag-document-assistant)
 
 公開デモでは、ポートフォリオ閲覧を優先し、登録文書の一覧・閲覧を認証なしで提供しています。
 

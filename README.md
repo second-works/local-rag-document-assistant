@@ -1,34 +1,119 @@
 # Local RAG Document Assistant
 
-Gemma 4 をローカルで動かし、PDF/TXTの業務文書を検索して根拠付きで回答するPortfolio 02です。
+企業内文書・設備マニュアル・手順書・FAQを検索し、回答と根拠を一緒に確認できるRAGポートフォリオです。
 
-## What this proves
+## 発注者向け概要
 
-- ローカルLLMをHTTP APIとして分離し、Gemma 4へ交換可能な設計
-- ページ情報を維持したPDF/TXTの文書登録とチャンク化
-- Embedding / Vector Search / Generationを分離したRAG構成
-- 回答本文、文書名、ページ、関連度、根拠文章の表示
-- 検索スコア閾値と回答不能処理によるハルシネーション抑制
-- Cloudflare Workerを使った認証済みローカルLLM接続境界
-- 管理画面からの登録文書一覧と、非公開R2に保存したPDFの閲覧
+自然文で質問すると、登録文書から関連箇所を検索し、文書名・ページ・関連度・根拠文章を回答とともに表示します。
 
-## Current status
+- 社内規程や業務手順を確認するFAQ
+- 設備マニュアルや点検基準の検索
+- 保守担当者向けのトラブルシューティング
+- 文書を根拠にした社内ナレッジ検索
 
-この初期版は、UIとRAGコアをローカルで動かせる縦切りです。`LOCAL_LLM_BASE_URL` と `LOCAL_LLM_MODEL` を設定すると、OpenAI互換のGemma 4サーバーへ問い合わせます。未設定時は、登録済みのデモ文書から根拠を返すフォールバックを使用します。
+根拠が十分でない質問には、推測で補完せず、次の回答を返します。
 
-Vectorizeのインデックス次元はEmbeddingモデルの日本語評価後に固定するため、現段階では未プロビジョニングです。PDFの原本はCloudflare R2の非公開バケットへ保存し、公開用の読み取りAPIからのみ閲覧できます。Cloudflare公開は完了していますが、実Gemma接続はTunnel/Access Secret設定後に有効化されます。
+```text
+登録された文書からは確認できません。
+```
 
-## Live demo
+## Live Demo
 
 <https://local-rag-document-assistant.katamachi.workers.dev>
 
-Cloudflare Workers上でNext.js UIとRoute Handlersを公開しています。現在はTunnel/Access Secret未設定のため、デモ文書に対する根拠付きフォールバック回答を返します。
+公開デモはポートフォリオ確認用で、現在は **retrieval fallback** が動作します。実Gemma 4の公開推論が有効になっている状態ではありません。
 
-## Application guide
+実Gemma 4へ切り替えるには、OpenAI互換エンドポイント、Cloudflare Tunnel、Cloudflare Access Service Auth、Worker Secretを設定し、`LOCAL_LLM_BASE_URL` と `LOCAL_LLM_MODEL` を設定して再デプロイします。
 
-アプリの操作方法、システム構成、RAG処理、Tunnelセキュリティ、技術選定、ポートフォリオ向け説明は、[docs/application-guide.md](docs/application-guide.md) にまとめています。
+実Gemma接続時は回答メタ情報に `Gemma 4 / local API`、未接続時は `retrieval fallback` と表示されます。
 
-## Run locally
+## RAG処理フロー
+
+```mermaid
+flowchart LR
+  A[PDF / TXT文書] --> B[ページ情報を保持して抽出]
+  B --> C[チャンク分割<br/>700文字・Overlap 100]
+  C --> D{検索方式}
+  D -->|現在| E[デモチャンクの語彙検索]
+  D -->|評価後| F[Embedding + Vectorize]
+  E --> G[関連度閾値 0.15<br/>最大5件]
+  F --> G
+  G --> H{根拠あり?}
+  H -->|なし| I[回答不能]
+  H -->|あり| J{Gemma 4接続?}
+  J -->|あり| K[ローカルLLMで生成]
+  J -->|なし| L[根拠付きフォールバック]
+  K --> M[回答 + 文書名 + ページ + 根拠]
+  L --> M
+```
+
+現在の公開デモは検索・閾値判定・出典表示・回答不能処理を検証する縦切りです。Vectorizeは日本語Embeddingモデルの評価後に有効化する予定で、現時点では未プロビジョニングです。
+
+## セキュリティと制約
+
+- PDF原本は非公開R2に保存し、アプリのファイルAPI経由で取得します。
+- ローカルLLMのポートを直接インターネットへ公開せず、Cloudflare Tunnelを経由します。
+- Tunnel接続ではBearer tokenを使用し、Cloudflare Accessを追加できます。
+- 回答には検索コンテキストだけを渡し、低スコア結果を除外します。
+- 文書内の命令文は引用データとして扱い、システム指示と分離します。
+- 公開デモの管理画面は文書一覧とPDF閲覧だけの読み取り専用です。
+- 公開デモは機密文書の業務運用を想定していません。実案件では認証・認可、テナント分離、更新管理、監査ログを追加します。
+
+## Cloudflare構成の役割
+
+| コンポーネント | 役割 |
+| --- | --- |
+| Cloudflare Workers / Next.js | UI、質問API、文書APIを一つの公開URLで提供 |
+| Cloudflare R2 | 非公開PDF原本を保存 |
+| Cloudflare Tunnel | WorkerからローカルLLMへのアウトバウンド接続 |
+| Cloudflare Access | TunnelのService Authによる接続元検証 |
+| Gemma 4 / llama-server | 検索根拠を使った回答生成 |
+| Vectorize | 日本語Embedding評価後に導入する将来のベクトル検索 |
+
+## 評価用サンプル
+
+| 質問 | 期待する動作 |
+| --- | --- |
+| 非常用発電機の点検頻度は？ | 点検基準の根拠とページを表示 |
+| 火災報知設備に異常が出た場合は？ | 点検手順の確認事項・復旧手順を表示 |
+| 空調機から異音が発生した場合は？ | マニュアルの確認項目と保全依頼の根拠を表示 |
+| 文書にない製品の価格は？ | 回答不能として推測しない |
+
+## 実装済み / 未実装
+
+### 実装済み
+
+- Next.js UIとCloudflare Workers公開
+- PDF/TXTのページ情報を考慮した文書・チャンクモデル
+- デモチャンク検索、関連度閾値、最大5件取得
+- 回答不能処理、回答本文、出典、根拠文章の表示
+- OpenAI互換ローカルLLMアダプター
+- Cloudflare Tunnel向け認証プロキシ
+- 非公開R2 PDFの一覧・閲覧
+- PDFページ送り、拡大縮小、ピンチ操作
+- Prompt Injectionを考慮したプロンプト境界
+
+### 未実装・保留
+
+- 日本語Embeddingモデルの比較評価
+- Cloudflare Vectorizeの本番インデックス
+- D1による文書メタデータ永続化
+- OCR、Word/Excel/Google Drive/SharePoint/Slack連携
+- Hybrid Search、Reranker、Knowledge Graph
+- 本番向けの複雑な権限管理、版管理、再インデックス、監査ログ
+- 公開デモでの文書アップロード・削除・再読込
+
+## 案件で応用できること
+
+- 社内規程・就業規則・安全手順の検索
+- 設備保全、点検、障害対応マニュアルの検索
+- FAQ・ナレッジベースの回答支援
+- 外部LLMへ機密文書を送らないオンプレミス / プライベートLLM構成
+- 文書更新、権限、監査、評価データを追加した業務システム化
+
+検索・生成・保存・認証を分離しているため、Embeddingモデル、生成モデル、保存先、アクセス制御を案件要件に合わせて交換できます。
+
+## ローカルで動かす
 
 ```bash
 npm install
@@ -36,17 +121,15 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open <http://localhost:3000>.
-
-Optional local LLM settings:
+<http://localhost:3000> を開きます。
 
 ```text
 LOCAL_LLM_BASE_URL=http://127.0.0.1:8080/v1
-LOCAL_LLM_MODEL=gemma-4
+LOCAL_LLM_MODEL=gemma-4-e4b
 LOCAL_LLM_API_KEY=
 ```
 
-## Validate
+## 品質確認
 
 ```bash
 npm run typecheck
@@ -55,9 +138,7 @@ npm test
 npm run build
 ```
 
-## Cloudflare deployment
-
-The complete Next.js application is deployed to Cloudflare Workers through the OpenNext adapter. The deployed Worker serves the UI and Route Handlers together. `worker/src/index.ts` remains a narrow authenticated bridge reference for a separate local-LLM connection when that topology is selected; it is not permission to expose a local port directly to the public internet.
+## Cloudflareへデプロイする場合
 
 ```bash
 npm run cf-typegen
@@ -65,35 +146,25 @@ npm run deploy
 npx wrangler deployments list
 ```
 
-Before deploying, set `LOCAL_LLM_BASE_URL` to a private, authenticated route reachable by the Worker. Do not use `localhost` in the deployed environment and do not put tokens in `wrangler.jsonc` or source code.
-
-Before the Tunnel secrets are configured, the deployed app intentionally uses the grounded fallback. Vectorize should be provisioned only after the Japanese embedding model and dimension are evaluated.
-
-### Maintenance screen
-
-サイドバーの「管理画面」では、登録文書のファイル名、ページ数、チャンク数、容量、登録日を確認できます。PDFを選択すると、WorkerがR2から取得し、ブラウザ内のPDFビューアに表示します。ポートフォリオ公開用のため、一覧・閲覧だけを提供し、アップロードや再読込などの運用操作は持たせていません。詳しい境界は [docs/maintenance-mode.md](docs/maintenance-mode.md) を参照してください。
-
-The local Gemma connection is prepared for `Cloudflare Tunnel + Access Service Auth`. Follow [docs/tunnel-security.md](docs/tunnel-security.md) before enabling live inference. The Worker rejects a remote LLM endpoint when the tunnel bearer secret is missing.
-
-For the optional bridge topology:
+Tunnel接続を有効にする場合は、秘密情報をGitへ保存せず、Cloudflare Workers Secretまたはローカルの`.env.tunnel`へ設定します。
 
 ```bash
-npm run worker:types
-npx wrangler secret put LOCAL_LLM_TOKEN
+npx wrangler secret put LOCAL_LLM_TUNNEL_TOKEN
+npx wrangler secret put CF_ACCESS_CLIENT_ID
+npx wrangler secret put CF_ACCESS_CLIENT_SECRET
 ```
 
-## Project structure
+`LOCAL_LLM_BASE_URL` に `localhost` を設定したまま公開環境へデプロイしないでください。オプションの認証ブリッジを使う場合は、[docs/tunnel-security.md](docs/tunnel-security.md) と `worker/src/index.ts` を確認してください。
 
-```text
-src/app/                 Next.js UI and Route Handlers
-src/lib/rag/             page extraction, chunking, retrieval, answer service
-src/lib/llm/             OpenAI-compatible local LLM adapter
-worker/src/              Cloudflare authenticated LLM bridge
-docs/                    architecture and project history
-```
+## 関連資料
+
+- [アプリケーション説明書](docs/application-guide.md)
+- [システム構成](docs/architecture.md)
+- [Tunnelセキュリティ設計](docs/tunnel-security.md)
+- [管理画面の設計](docs/maintenance-mode.md)
 
 ## Portfolio positioning
 
-> ローカルLLMを利用した企業向け文書検索システムを設計・構築しました。
+> ローカルLLMのGemma 4とRAGを組み合わせ、企業内文書を根拠付きで検索できるWebアプリケーションを設計・構築しました。
 
-業務文書を外部LLM APIへ送信せず、検索コンテキストと生成LLMを分離できることを主な差別化ポイントとします。
+業務文書を外部LLM APIへ送信しない構成、検索と生成の分離、出典表示、Cloudflareによる接続境界を主な差別化ポイントとします。
