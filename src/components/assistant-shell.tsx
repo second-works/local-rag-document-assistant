@@ -3,14 +3,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { DocumentSummary, QueryResponse } from "@/lib/rag/types";
 import { PdfPageViewer } from "@/components/pdf-page-viewer";
+import { DEMO_DISCLAIMER, DEMO_DOCUMENTS } from "@/lib/demo/documents";
 
 type View = "chat" | "maintenance" | "system";
 
-const initialDocuments: DocumentSummary[] = [
-  { documentId: "demo-generator", name: "非常用発電機点検基準.pdf", size: 0, pages: 5, chunks: 5, date: "2026-08-17", contentType: "application/pdf", viewable: false },
-  { documentId: "demo-fire", name: "消防設備点検手順.pdf", size: 0, pages: 5, chunks: 5, date: "2026-08-17", contentType: "application/pdf", viewable: false },
-  { documentId: "demo-air", name: "空調設備マニュアル.pdf", size: 0, pages: 5, chunks: 5, date: "2026-08-17", contentType: "application/pdf", viewable: false },
-];
+const initialDocuments: DocumentSummary[] = DEMO_DOCUMENTS;
 
 function formatSize(size: number) {
   if (size === 0) return "demo data";
@@ -113,12 +110,12 @@ export function AssistantShell() {
 
       <main className="main">
         <header className="topbar">
-          <div><div className="eyebrow">Portfolio 02 / Local AI System</div><h1>文書を根拠付きで検索する</h1><p className="subtitle">施設・設備管理の業務文書を検索し、Gemma 4 のローカル推論で回答します。すべての回答に参照ページと根拠文章を添えます。</p></div>
+          <div><div className="eyebrow">Portfolio 02 / Local AI System</div><h1>文書を根拠付きで検索する</h1><p className="subtitle">経費、備品、勤怠・休暇のバックオフィス文書を検索し、Gemma 4 のローカル推論で回答します。すべての回答に参照ページと根拠文章を添えます。</p></div>
           <div className="status-grid"><div className="status-card"><span>LLM</span><strong>Gemma 4</strong></div><div className="status-card"><span>Inference</span><strong className="online">LOCAL</strong></div><div className="status-card"><span>RAG</span><strong className="online">ONLINE</strong></div></div>
         </header>
 
         <div className="workspace">
-          {view === "chat" && <section className="panel chat-panel"><div className="panel-heading"><div><h2>施設・設備管理アシスタント</h2><p>登録済み文書だけを根拠に回答します</p></div><span className="source-count">{documents.length} documents</span></div><div className="messages">{result ? <><div className="message user"><div className="message-label">あなた</div><div className="bubble">{result.question ?? "質問"}</div></div><div className="message"><div className="message-label">Local RAG Assistant</div><div className="bubble">{result.answer}</div><div className="answer-meta"><strong>{result.grounded ? "根拠あり" : "回答不能"}</strong><span>・</span><span>{result.mode === "local" ? "Gemma 4 / local API" : "retrieval fallback"}</span></div>{result.sources.length > 0 && <div className="sources">{result.sources.map((source) => <div className="source" key={source.chunkId}><div className="source-top"><span>{source.documentName} / {source.page}ページ</span><span className="score">{Math.round(source.score * 100)}%</span></div><p>「{source.text}」</p></div>)}</div>}</div></> : <div className="message"><div className="message-label">Local RAG Assistant</div><div className="bubble">質問を入力してください。検索された文書の範囲だけを使い、確認できない場合はその旨を回答します。</div></div>}</div><form className="composer" onSubmit={ask}><input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="例：非常用発電機の点検頻度は？" aria-label="質問" /><button className="primary" type="submit">{loading ? "検索中…" : "質問する"}</button></form></section>}
+          {view === "chat" && <section className="panel chat-panel"><div className="panel-heading"><div><h2>バックオフィス文書アシスタント</h2><p>登録済み文書だけを根拠に回答します</p></div><span className="source-count">{documents.length} documents</span></div><div className="messages"><p className="legal-notice">{DEMO_DISCLAIMER}</p>{result ? <><div className="message user"><div className="message-label">あなた</div><div className="bubble">{result.question ?? "質問"}</div></div><div className="message"><div className="message-label">Local RAG Assistant</div><div className="bubble">{result.answer}</div><div className="answer-meta"><strong>{result.grounded ? "根拠あり" : "回答不能"}</strong><span>・</span><span>{result.mode === "local" ? "Gemma 4 / local API" : "retrieval fallback"}</span></div>{result.sources.length > 0 && <div className="sources">{result.sources.map((source) => <div className="source" key={source.chunkId}><div className="source-top"><span>{source.documentName} / {source.page}ページ</span><span className="score">{Math.round(source.score * 100)}%</span></div><p>「{source.text}」</p></div>)}</div>}</div></> : <div className="message"><div className="message-label">Local RAG Assistant</div><div className="bubble">質問を入力してください。検索された文書の範囲だけを使い、確認できない場合はその旨を回答します。</div></div>}</div><form className="composer" onSubmit={ask}><input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="例：領収書を紛失した場合はどうしますか。" aria-label="質問" /><button className="primary" type="submit">{loading ? "検索中…" : "質問する"}</button></form></section>}
 
           {view === "maintenance" && <section className="maintenance-layout">
             <section className="panel maintenance-list">

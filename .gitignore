@@ -15,3 +15,7 @@ cloudflared/*.json
 *.log
 *.tsbuildinfo
 .bm25/
+tmp/
+.r2-staging/
+.playwright-cli/
+output/playwright/

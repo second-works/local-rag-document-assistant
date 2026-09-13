@@ -51,6 +51,7 @@ h1 { margin: 7px 0 8px; font-size: clamp(26px, 3vw, 38px); letter-spacing: -.04e
 .panel-heading p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
 .source-count { border-radius: 100px; background: #e8f5f0; color: var(--accent-dark); padding: 7px 10px; font-size: 11px; font-weight: 800; }
 .messages { display: grid; align-content: start; gap: 22px; padding: 30px 24px; overflow: auto; }
+.legal-notice { margin: 0; border: 1px solid #ead7b5; border-radius: 11px; padding: 11px 13px; background: #fff9ee; color: #76501d; font-size: 11px; line-height: 1.6; }
 .message { max-width: 850px; }
 .message.user { justify-self: end; max-width: 650px; }
 .message-label { margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 800; }
