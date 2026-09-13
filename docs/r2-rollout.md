@@ -9,6 +9,7 @@ R2への書き込み、旧オブジェクトの削除、Cloudflareへのデプ�
 文書本文から3冊のPDFを再生成します。
 
 ```bash
+python3 -m pip install -r requirements-demo-pdf.txt
 python3 scripts/generate-demo-pdfs.py
 ```
 

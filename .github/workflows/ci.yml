@@ -30,3 +30,13 @@ jobs:
         run: npm test
       - name: Build production bundle
         run: npm run build
+      - name: Set up Python for PDF fixtures
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PDF fixture dependencies
+        run: python -m pip install -r requirements-demo-pdf.txt
+      - name: Generate and stage PDF fixtures
+        run: |
+          python scripts/generate-demo-pdfs.py
+          python scripts/stage-demo-r2.py

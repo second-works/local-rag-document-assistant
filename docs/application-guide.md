@@ -150,7 +150,8 @@ PDFは1ページずつ表示します。
 PDFは次のコマンドで生成します。
 
 ```bash
-/path/to/python3 scripts/generate-demo-pdfs.py
+python3 -m pip install -r requirements-demo-pdf.txt
+python3 scripts/generate-demo-pdfs.py
 ```
 
 生成先は`output/pdf/`です。

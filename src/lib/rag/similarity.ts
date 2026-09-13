@@ -1,5 +1,9 @@
 const JAPANESE_STOP_BIGRAMS = new Set(["から", "した", "た場", "場合", "合は"]);
 
+function isMeaningfulToken(token: string) {
+  return /^[a-z0-9]{2,}$/u.test(token) || /^(?:\p{Script=Han}|\p{Script=Katakana}){2}$/u.test(token);
+}
+
 function tokens(value: string): Set<string> {
   const normalized = value.toLocaleLowerCase("ja-JP");
   const result = new Set(normalized.match(/[a-z0-9]{2,}/gu) ?? []);
@@ -17,6 +21,8 @@ export function lexicalSimilarity(left: string, right: string): number {
   if (a.size === 0 || b.size === 0) return 0;
   let intersection = 0;
   for (const token of a) if (b.has(token)) intersection += 1;
+  const meaningfulOverlap = [...a].filter((token) => b.has(token) && isMeaningfulToken(token)).length;
+  if (meaningfulOverlap === 0) return 0;
   const cosineSimilarity = intersection / Math.sqrt(a.size * b.size);
   const queryCoverage = intersection / a.size;
   return queryCoverage * 0.8 + cosineSimilarity * 0.2;
