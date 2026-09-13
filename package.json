@@ -20,20 +20,20 @@
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.2",
-    "next": "16.3.1",
+    "next": "16.3.5",
     "pdf-parse": "1.1.1",
     "pdfjs-dist": "^6.2.108",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260817.1",
+    "@cloudflare/workers-types": "5.20260911.1",
     "@types/node": "^22.15.0",
     "@types/pdf-parse": "^1.1.4",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "typescript": "^5.8.0",
     "vitest": "^3.2.0",
-    "wrangler": "4.123.0"
+    "wrangler": "4.131.1"
   }
 }

@@ -1,12 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import type { DocumentSummary } from "@/lib/rag/types";
-
-const DEMO_DOCUMENTS: DocumentSummary[] = [
-  { documentId: "demo-generator", name: "非常用発電機点検基準.pdf", size: 0, pages: 5, chunks: 5, date: "2026-08-17", contentType: "application/pdf", viewable: false },
-  { documentId: "demo-fire", name: "消防設備点検手順.pdf", size: 0, pages: 5, chunks: 5, date: "2026-08-17", contentType: "application/pdf", viewable: false },
-  { documentId: "demo-air", name: "空調設備マニュアル.pdf", size: 0, pages: 5, chunks: 5, date: "2026-08-17", contentType: "application/pdf", viewable: false },
-];
+import { DEMO_DOCUMENTS } from "@/lib/demo/documents";
 
 function getDocumentsBucket(): R2Bucket | undefined {
   try {
