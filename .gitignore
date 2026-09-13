@@ -18,3 +18,4 @@ cloudflared/*.json
 tmp/
 .r2-staging/
 .playwright-cli/
+output/playwright/
