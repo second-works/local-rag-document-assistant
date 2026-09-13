@@ -13,4 +13,8 @@ describe("lexicalSimilarity", () => {
   it("ignores functional-word overlap for short unsupported questions", () => {
     expect(lexicalSimilarity("社長は誰ですか？", "勤怠の打刻を忘れたときは、当日中に上長へ連絡する。")).toBe(0);
   });
+
+  it("does not apply coverage to a generic overlap", () => {
+    expect(lexicalSimilarity("会社の住所はどこですか？", "勤怠の打刻を忘れたときは、当日中に上長へ連絡する。")).toBe(0);
+  });
 });
